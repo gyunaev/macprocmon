@@ -6,7 +6,7 @@
 
 #include "EndpointSecurity.h"
 #include "flags.h"
-
+#include <stdio.h>
 
 class EndpointSecurityImpl
 {
@@ -66,6 +66,8 @@ class EndpointSecurityImpl
         
         void getStatFs( const struct statfs *statfs )
         {
+            event.parameters[ "f_mntfromname"] = statfs->f_mntfromname;
+            event.parameters[ "f_mntonname"] = statfs->f_mntonname;
         }
 };
 
@@ -207,7 +209,7 @@ void EndpointSecurity::on_event( const es_message_t * message )
     }
    
     // And the event itself
-    switch ( message->event_type)
+    switch ( message->event_type )
     {
         case ES_EVENT_TYPE_NOTIFY_ACCESS:
             on_access( message->event.access.target, message->event.access.mode);
@@ -750,7 +752,10 @@ void EndpointSecurity::on_proc_check ( int flavor, es_process_t * target, int ty
 {
     pimpl->event.event = "proc_check";
     pimpl->event.parameters["flavor"] = std::to_string(flavor);
-    pimpl->getEsProcess( target, "target_" );
+    
+    if ( target )
+        pimpl->getEsProcess( target, "target_" );
+    
     pimpl->event.parameters["type"] = parse_value( value_map_proc_check_type, type );
 }
 
