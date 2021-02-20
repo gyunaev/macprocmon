@@ -1,0 +1,319 @@
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_access
+-
+    name: access
+    events: [ ES_EVENT_TYPE_NOTIFY_ACCESS ] 
+    params: [ es_file_t * target, int32_t mode ]
+    convert: [ mode : convertAccessMode ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_chdir
+-
+    name: chdir
+    events: [ ES_EVENT_TYPE_NOTIFY_CHDIR, ES_EVENT_TYPE_AUTH_CHDIR ]
+    params: [ es_file_t * target ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_chroot
+-
+    name: chroot
+    events: [ ES_EVENT_TYPE_NOTIFY_CHROOT, ES_EVENT_TYPE_AUTH_CHROOT ]    
+    params: [ es_file_t * target ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_clone
+-
+    name: clone
+    events: [ ES_EVENT_TYPE_NOTIFY_CLONE, ES_EVENT_TYPE_AUTH_CLONE ]
+    params: [ es_file_t * source, es_file_t * target_dir, es_string_token_t target_name ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_close
+-
+    name: close
+    events: [ ES_EVENT_TYPE_NOTIFY_CLOSE ]
+    params: [ es_file_t * target, bool modified ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_create
+# Manual implementation for destination
+-
+    name: create
+    events: [ ES_EVENT_TYPE_NOTIFY_CREATE, ES_EVENT_TYPE_AUTH_CREATE ]
+    params: []
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_deleteextattr
+-
+    name: deleteextattr
+    events: [ ES_EVENT_TYPE_NOTIFY_DELETEEXTATTR, ES_EVENT_TYPE_AUTH_DELETEEXTATTR ]
+    params: [ es_file_t * target, es_string_token_t extattr ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_dup
+-
+    name: dup
+    events: [ ES_EVENT_TYPE_NOTIFY_DUP ]
+    params: [ es_file_t * target ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_exchangedata
+-
+    name: exchangedata
+    events: [ ES_EVENT_TYPE_NOTIFY_EXCHANGEDATA, ES_EVENT_TYPE_AUTH_EXCHANGEDATA ]
+    params: [ es_file_t * file1, es_file_t * file2 ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_exec
+# this one requires special handling to dump arguments
+-
+    name: exec
+    events: [ ES_EVENT_TYPE_NOTIFY_EXEC, ES_EVENT_TYPE_AUTH_EXEC ]
+    params: []
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_exit
+-
+    name: exit
+    events: [ ES_EVENT_TYPE_NOTIFY_EXIT ]
+    params: [ int stat ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_fcntl
+-
+    name: fcntl
+    events: [ ES_EVENT_TYPE_NOTIFY_FCNTL, ES_EVENT_TYPE_AUTH_FCNTL ]
+    params: [ es_file_t * target, int32_t cmd ]
+    convert: [ cmd : convertFcntl ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_file_provider_materialize
+-
+    name: file_provider_materialize
+    events: [ ES_EVENT_TYPE_NOTIFY_FILE_PROVIDER_MATERIALIZE, ES_EVENT_TYPE_AUTH_FILE_PROVIDER_MATERIALIZE ]
+    params: [ es_process_t *instigator, es_file_t *source, es_file_t *target ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_file_provider_update
+-
+    name: file_provider_update
+    events: [ ES_EVENT_TYPE_NOTIFY_FILE_PROVIDER_UPDATE, ES_EVENT_TYPE_AUTH_FILE_PROVIDER_UPDATE ]
+    params: [ es_file_t *source, es_string_token_t target_path ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_fork    
+-
+    name: fork
+    events: [ ES_EVENT_TYPE_NOTIFY_FORK ]
+    params: [ es_process_t *child ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_fsgetpath    
+-
+    name: fsgetpath
+    events: [ ES_EVENT_TYPE_NOTIFY_FSGETPATH, ES_EVENT_TYPE_AUTH_FSGETPATH ]
+    params: [ es_file_t *target ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_getattrlist
+-
+    name: getattrlist
+    events: [ ES_EVENT_TYPE_NOTIFY_GETATTRLIST, ES_EVENT_TYPE_AUTH_GETATTRLIST ]
+    params: [ es_file_t *target, struct attrlist attrlist ]
+    convert: [ cmd : convertAttrList ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_getextattr
+-
+    name: getextattr
+    events: [ ES_EVENT_TYPE_NOTIFY_GETEXTATTR, ES_EVENT_TYPE_AUTH_GETEXTATTR ]
+    params: [ es_file_t *target, es_string_token_t extattr ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_get_task
+-
+    name: get_task
+    events: [ ES_EVENT_TYPE_AUTH_GET_TASK, ES_EVENT_TYPE_NOTIFY_GET_TASK ]
+    params: [ es_process_t *target ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_iokit_open
+-
+    name: iokit_open
+    events: [ ES_EVENT_TYPE_AUTH_IOKIT_OPEN, ES_EVENT_TYPE_NOTIFY_IOKIT_OPEN ]
+    params: [ es_string_token_t user_client_class, uint32_t user_client_type ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_kextload
+-
+    name: kextload
+    events: [ ES_EVENT_TYPE_AUTH_KEXTLOAD, ES_EVENT_TYPE_NOTIFY_KEXTLOAD ]
+    params: [ es_string_token_t identifier ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_kextunload
+-
+    name: kextunload
+    events: [ ES_EVENT_TYPE_NOTIFY_KEXTUNLOAD ]
+    params: [ es_string_token_t identifier ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_link
+-
+    name: link
+    events: [ ES_EVENT_TYPE_AUTH_LINK, ES_EVENT_TYPE_NOTIFY_LINK ]
+    params: [ es_file_t *source, es_file_t *target_dir, es_string_token_t target_filename ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_listextattr
+-
+    name: listextattr
+    events: [ ES_EVENT_TYPE_AUTH_LISTEXTATTR, ES_EVENT_TYPE_NOTIFY_LISTEXTATTR ]
+    params: [ es_file_t *target ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_lookup
+-
+    name: lookup
+    events: [ ES_EVENT_TYPE_NOTIFY_LOOKUP ]
+    params: [ es_file_t *source_dir, es_string_token_t relative_target ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_mmap
+-
+    name: mmap
+    events: [ ES_EVENT_TYPE_AUTH_MMAP, ES_EVENT_TYPE_NOTIFY_MMAP ]
+    params: [ es_file_t *source, uint64_t file_pos, int32_t flags,int32_t max_protection,  int32_t protection]
+    convert: [ flags : convertMmapFlags, max_protection : convertMmapProt, protection : convertMmapProt ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_mount
+-
+    name: mount
+    events: [ ES_EVENT_TYPE_AUTH_MOUNT, ES_EVENT_TYPE_NOTIFY_MOUNT ]
+    params: [ es_statfs_t statfs ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_mprotect
+-
+    name: mprotect
+    events: [ ES_EVENT_TYPE_AUTH_MPROTECT, ES_EVENT_TYPE_NOTIFY_MPROTECT ]
+    params: [ user_addr_t address, user_size_t size, int32_t protection ]
+    convert: [ protection : convertMmapProt ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_open
+-
+    name: open
+    events: [ ES_EVENT_TYPE_AUTH_OPEN, ES_EVENT_TYPE_NOTIFY_OPEN ]
+    params: [ es_file_t * filename, int32_t fflag ]
+    convert: [ protection : convertOpenFflag ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_proc_check
+- 
+    name: proc_check
+    events: [ ES_EVENT_TYPE_AUTH_PROC_CHECK, ES_EVENT_TYPE_NOTIFY_PROC_CHECK ]
+    params: [ int flavor, es_process_t * target, int type ]
+    convert: [ type : convertProcCheckType ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_pty_close
+-
+    name: pty_close
+    events: [ ES_EVENT_TYPE_NOTIFY_PTY_CLOSE ]
+    params: [ dev_t dev ]
+    convert: [ dev : convertDevice ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_pty_grant_t
+-
+    name: pty_grant
+    events: [ ES_EVENT_TYPE_NOTIFY_PTY_GRANT ]
+    params: [ dev_t dev ]
+    convert: [ dev : convertDevice ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_readdir
+-
+    name: readdir
+    events: [ ES_EVENT_TYPE_AUTH_READDIR, ES_EVENT_TYPE_NOTIFY_READDIR ]
+    params: [ es_file_t *target ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_readlink
+-
+    name: readlink
+    events: [ ES_EVENT_TYPE_AUTH_READLINK, ES_EVENT_TYPE_NOTIFY_READLINK ]
+    params: [ es_file_t *source ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_rename_t
+# Manual implementation for destination
+-
+    name: rename
+    events: [ ES_EVENT_TYPE_AUTH_RENAME, ES_EVENT_TYPE_NOTIFY_RENAME ]
+    params: []
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_setacl
+# Currently ignoring set_or_clear and acl
+-
+    name: setacl
+    events: [ ES_EVENT_TYPE_NOTIFY_SETACL, ES_EVENT_TYPE_AUTH_SETACL ]
+    params: [ es_file_t *target ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_setattrlist
+-
+    name: setattrlist
+    events: [ ES_EVENT_TYPE_NOTIFY_SETATTRLIST, ES_EVENT_TYPE_AUTH_SETATTRLIST ]     
+    params: [ es_file_t *target, struct attrlist attrlist ]
+    convert: [ cmd : convertAttrList ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_setextattr
+-
+    name: setextattr
+    events: [ ES_EVENT_TYPE_NOTIFY_SETEXTATTR, ES_EVENT_TYPE_AUTH_SETEXTATTR ]
+    params: [ es_file_t *target, es_string_token_t extattr ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_setflags
+-
+    name: setflags
+    events: [ ES_EVENT_TYPE_NOTIFY_SETFLAGS, ES_EVENT_TYPE_AUTH_SETFLAGS ]
+    params: [ es_file_t *target, uint32_t flags ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_setmode
+-
+    name: setmode
+    events: [ ES_EVENT_TYPE_NOTIFY_SETMODE, ES_EVENT_TYPE_AUTH_SETMODE ]
+    params: [ es_file_t *target, int32_t mode ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_setowner
+-
+    name: setowner
+    events: [ ES_EVENT_TYPE_AUTH_SETOWNER, ES_EVENT_TYPE_NOTIFY_SETOWNER ] 
+    params: [ es_file_t *target, int32_t uid, int32_t gid ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_settime
+-
+    name: settime
+    events: [ ES_EVENT_TYPE_AUTH_SETTIME, ES_EVENT_TYPE_NOTIFY_SETTIME ] 
+    params: []
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_signal
+-
+    name: signal
+    events: [ ES_EVENT_TYPE_AUTH_SIGNAL, ES_EVENT_TYPE_NOTIFY_SIGNAL ] 
+    params: [ es_process_t *target, uint32_t sig ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_stat
+-
+    name: stat
+    events: [ ES_EVENT_TYPE_NOTIFY_STAT ] 
+    params: [ es_file_t *target ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_truncate
+-
+    name: truncate
+    events: [ ES_EVENT_TYPE_AUTH_TRUNCATE, ES_EVENT_TYPE_NOTIFY_TRUNCATE ] 
+    params: [ es_file_t *target ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_uipc_bind
+-
+    name: uipc_bind
+    events: [ ES_EVENT_TYPE_AUTH_UIPC_BIND, ES_EVENT_TYPE_NOTIFY_UIPC_BIND ]     
+    params: [ es_file_t *dir, es_string_token_t filename, uint32_t mode ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_uipc_connect
+-
+    name: uipc_connect
+    events: [ ES_EVENT_TYPE_AUTH_UIPC_CONNECT, ES_EVENT_TYPE_NOTIFY_UIPC_CONNECT ]     
+    params: [ es_file_t *file, int domain, int type, int protocol ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_unlink
+-
+    name: unlink
+    events: [ ES_EVENT_TYPE_AUTH_UNLINK, ES_EVENT_TYPE_NOTIFY_UNLINK ]     
+    params: [ es_file_t *target ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_unmount
+-
+    name: unmount
+    events: [ ES_EVENT_TYPE_NOTIFY_UNMOUNT ]
+    params: [ struct statfs *statfs ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_utimes
+-
+    name: utimes
+    events: [ ES_EVENT_TYPE_AUTH_UTIMES, ES_EVENT_TYPE_NOTIFY_UTIMES ]     
+    params: [ es_file_t *target, uint64_t mtime,  uint64_t atime ]
+
+# https://developer.apple.com/documentation/endpointsecurity/es_event_type_t/es_event_type_notify_write
+-
+    name: write
+    events: [ ES_EVENT_TYPE_NOTIFY_WRITE ]
+    params: [ es_file_t *target ]
