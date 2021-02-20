@@ -225,6 +225,19 @@ static std::map< unsigned int, const char *> value_map_attr_fork = {
     { 0xffffffff, "ATTR_FORK_RESERVED" }
 };
 
+static std::map< unsigned int, const char *> value_map_proc_check_type = {
+    { 0x8, "ES_PROC_CHECK_TYPE_DIRTYCONTROL" },
+    { 0x4, "ES_PROC_CHECK_TYPE_KERNMSGBUF" },
+    { 0x1, "ES_PROC_CHECK_TYPE_LISTPIDS" },
+    { 0x3, "ES_PROC_CHECK_TYPE_PIDFDINFO" },
+    { 0x6, "ES_PROC_CHECK_TYPE_PIDFILEPORTINFO" },
+    { 0x2, "ES_PROC_CHECK_TYPE_PIDINFO" },
+    { 0x9, "ES_PROC_CHECK_TYPE_PIDRUSAGE" },
+    { 0x5, "ES_PROC_CHECK_TYPE_SETCONTROL" },
+    { 0x7, "ES_PROC_CHECK_TYPE_TERMINATE" },
+    { 0xe, "ES_PROC_CHECK_TYPE_UDATA_INFO" }
+};
+
 
 // Converts bitmask to a human-readable value, i.e. 5 into "FREAD|O_NONBLOCK"
 static std::string parse_bitfield( const std::map< unsigned int, const char *>& map, unsigned int value )
