@@ -131,8 +131,8 @@ static void test_max_clients()
 static void help( const char * exe )
 {
     std::cout << "Usage: " << exe << "[options]\n"
-        "  -e <event> event(s) to listen for. Can be used multiple times. -e all lists to all events\n"
-        "               for example, -e chdir,+open,close or -e all,-open listens to all events but open\n"
+        "  -e <event> an event to listen for. Can be used multiple times. -e all lists to all events\n"
+        "               for example, -e chdir -e +open -e close\n"
         "              + in front of event means it will be handled as auth event\n"
         " -p <path>   only monitor processes started from this path (including subpaths)\n\n"
         "  --test-max-clients   tests you how many clients you can create\n";
@@ -154,6 +154,7 @@ int main ( int argc, char ** argv )
     std::string monitoredPath;
     std::vector< es_event_type_t > subscriptions;
     unsigned int totalQueues = 1;
+    bool verbose = false;
     
     if ( argc == 1 )
     {
@@ -194,7 +195,23 @@ int main ( int argc, char ** argv )
                 {
                     // add all events
                     for ( auto e : supportedEvents )
+                    {
                         subscriptions.push_back( (es_event_type_t) std::get<0>( e.second ) );
+                    }
+                    
+                    if ( verbose )
+                        std::cout << "Added all notify events for monitoring\n";
+                }
+                else if ( ev == "+all" )
+                {
+                    // add all events
+                    for ( auto e : supportedEvents )
+                    {
+                        subscriptions.push_back( (es_event_type_t) std::get<1>( e.second ) );
+                    }
+                    
+                    if ( verbose )
+                        std::cout << "Added all auth events for monitoring\n";
                 }
                 else
                 {
@@ -233,11 +250,17 @@ int main ( int argc, char ** argv )
                         }
                      
                         subscriptions.erase( rit );
+                        
+                        if ( verbose )
+                            std::cout << "Removed from monitoring " << (authevent ? "auth" : "") << " event " << ev << "\n";
                     }
                     else
                     {
                         // Add an event for monitoring
                         subscriptions.push_back( authevent ? (es_event_type_t) std::get<1>( it->second ) : (es_event_type_t) std::get<0>( it->second ) );
+                        
+                        if ( verbose )
+                            std::cout << "Added monitoring " << (authevent ? "auth" : "") << " event " << ev << "\n";
                     }
                 }
                 
@@ -264,6 +287,15 @@ int main ( int argc, char ** argv )
             test_max_clients();
             exit( 1 );
         }
+        else if ( arg == "-v" )
+        {
+            verbose = true;
+        }
+        else
+        {
+            std::cerr << "Unknown argument: " << arg << "\n";
+            exit( 1 );
+        }
     }
     
     try
@@ -277,6 +309,9 @@ int main ( int argc, char ** argv )
             
             epsec->create( [ qid ](const EndpointSecurity::Event& event){ return event_callback( qid, event ); });
             epsec->subscribe( subscriptions );
+            
+            if ( verbose )
+                std::cout << "Interceptor started\n";
         }
         pause();
     }

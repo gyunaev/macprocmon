@@ -160,6 +160,26 @@ void EndpointSecurity::create( std::function<int(const EndpointSecurity::Event&)
     es_new_client_result_t res = es_new_client( &pimpl->client, ^(es_client_t * client, const es_message_t * message)
                           {
                               on_event( message );
+                              
+                              // Return the auth result if the event requires it
+                              if ( message->action_type == ES_ACTION_TYPE_AUTH )
+                              {
+                                  // This one requires es_respond_flags_result according to https://developer.apple.com/forums/thread/129112
+                                  if ( message->event_type == ES_EVENT_TYPE_AUTH_OPEN )
+                                  {
+                                    es_respond_result_t res = es_respond_flags_result( client, message, 0x7FFFFFFF, true );
+                                  
+                                    if ( res != 0 )
+                                        throw EndpointSecurityException( res, "Failed to respond to event: es_respond_auth_result() failed" );
+                                  }
+                                  else
+                                  {
+                                    es_respond_result_t res = es_respond_auth_result( client, message, ES_AUTH_RESULT_ALLOW, false );
+                                  
+                                    if ( res != 0 )
+                                        throw EndpointSecurityException( res, "Failed to respond to event: es_respond_auth_result() failed" );
+                                  }
+                              }
                           });
 
     switch (res)
