@@ -253,6 +253,8 @@ However `chdir` events **are generated** when you try to chdir to an existing di
     // modified : true, incorrect
     close( fd2 );
 
+The `modified` isn't set when the file is modified via mmap. This is probably a bug.
+    
 #### dup event ####
 
 When forking, the fds are duplicated internally, so `dup` event is not generated, even though duplication takes place.
@@ -268,6 +270,10 @@ When forking, the fds are duplicated internally, so `dup` event is not generated
 #### fcntl ####
 
 Some fcntl events generate both the `fcntl` and other event. For example `fcntl( fd, F_DUPFD )` generates both `fcntl` and `dup` events.
+
+#### mmap ####
+
+A file modified via `mmap` does not generate close event indicating the modification, unless the file was also modified by regular means.
 
 #### open ####
 
