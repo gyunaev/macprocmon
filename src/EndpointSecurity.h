@@ -72,6 +72,11 @@ class EndpointSecurity
         // Creates or destroys a client. Throws EndpointSecurityException in case of error
         void    create( std::function<int(const Event&)> reportfunc );
         void    destroy();
+        
+        // Only monitor operations of a specified process. All others will be ignored.
+        // This means the tool will suppress all events from all processes until this one is stared.
+        // The tool will monitor forks as well.
+        void    monitorOnlyProcessPath( const std::string& process );
 
         // Subscribe and unsubscribe for events
         void    subscribe( const std::vector< es_event_type_t >& events );
@@ -91,11 +96,11 @@ class EndpointSecurity
         void	on_dup ( es_file_t * target );
         void	on_exchangedata ( es_file_t * file1, es_file_t * file2 );
         void	on_exec ( const es_event_exec_t * event );
-        void	on_exit ( int stat );
+        void	on_exit ( pid_t pid, int stat );
         void	on_fcntl ( es_file_t * target, int32_t cmd );
         void	on_file_provider_materialize ( es_process_t *instigator, es_file_t *source, es_file_t *target );
         void	on_file_provider_update ( es_file_t *source, es_string_token_t target_path );
-        void	on_fork ( es_process_t *child );
+        void	on_fork ( pid_t pid, es_process_t *child );
         void	on_fsgetpath ( es_file_t *target );
         void	on_getattrlist ( es_file_t *target, struct attrlist attrlist );
         void	on_getextattr ( es_file_t *target, es_string_token_t extattr );

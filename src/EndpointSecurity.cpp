@@ -20,6 +20,11 @@ class EndpointSecurityImpl
         // The event which we reuse between messages. 
         EndpointSecurity::Event event;
         
+        // For selective tracking
+        std::string     monitoredProcessPath;
+        std::map< pid_t, int > monitoredProcesses;
+        
+        // Create the string out of es_string_token_t
         static inline std::string getEsStringToken( es_string_token_t src )
         {
             if ( src.length > 0 )
@@ -28,6 +33,7 @@ class EndpointSecurityImpl
                 return "";
         }
 
+        // Create the string out of es_file_t
         static inline std::string getEsFile( es_file_t * src )
         {
             if ( src )
@@ -36,6 +42,7 @@ class EndpointSecurityImpl
                 return "";
         }
         
+        // Create the string out of time_t
         static inline std::string timespecToString( time_t tval )
         {
             // You can get nanosecond time too from tv_usec if needed
@@ -44,8 +51,15 @@ class EndpointSecurityImpl
             return out;
         }
         
+        // Dumps es_process_t
         void getEsProcess( es_process_t * process, const std::string& prefix )
         {
+            // If the process already exited, we won't have its info
+            if ( !process )
+            {
+                event.parameters[ prefix + "pid"] = "-1";
+                return;
+            }            
             event.parameters[ prefix + "pid"] = std::to_string( audit_token_to_pid( process->audit_token ));
             event.parameters[ prefix + "euid"] = std::to_string( audit_token_to_euid( process->audit_token ));
             event.parameters[ prefix + "ruid"] = std::to_string( audit_token_to_ruid( process->audit_token ));
@@ -64,6 +78,7 @@ class EndpointSecurityImpl
             event.parameters[ prefix + "executable"] = getEsFile( process->executable );
         }
         
+        // Dumps struct statfs
         void getStatFs( const struct statfs *statfs )
         {
             event.parameters[ "f_mntfromname"] = statfs->f_mntfromname;
@@ -86,6 +101,11 @@ EndpointSecurity::~EndpointSecurity()
         es_delete_client( pimpl->client );
             
     delete pimpl;
+}
+
+void EndpointSecurity::monitorOnlyProcessPath( const std::string& process )
+{
+    pimpl->monitoredProcessPath = process;
 }
 
 // Creates the EndpointSecurity object. Besides implementing the callback in C++, it parses the error and converts it into the exception
@@ -259,7 +279,7 @@ void EndpointSecurity::on_event( const es_message_t * message )
             break;
 
         case ES_EVENT_TYPE_NOTIFY_EXIT:
-            on_exit( message->event.exit.stat);
+            on_exit( pid, message->event.exit.stat);
             break;
 
         case ES_EVENT_TYPE_AUTH_FCNTL:
@@ -281,7 +301,7 @@ void EndpointSecurity::on_event( const es_message_t * message )
             break;
 
         case ES_EVENT_TYPE_NOTIFY_FORK:
-            on_fork( message->event.fork.child);
+            on_fork( pid, message->event.fork.child);
             break;
 
         case ES_EVENT_TYPE_AUTH_FSGETPATH:
@@ -461,7 +481,11 @@ void EndpointSecurity::on_event( const es_message_t * message )
             throw EndpointSecurityException( 0, "on_event() received unhandled event" );
     };
     
-    pimpl->reportfunc( pimpl->event );
+    // We have to execute the above code to fill up monitoredProcesses if needed, but now we can check those and suppress the unnecessary events
+    // We cannot mute those processes because one of them would send exec() event when our process is started, and we won't see it. It is not possible
+    // to mute all events except exec.
+    if ( pimpl->monitoredProcessPath.empty() || pimpl->monitoredProcesses.find( pid ) != pimpl->monitoredProcesses.end() )
+        pimpl->reportfunc( pimpl->event );
 }
 
 void EndpointSecurity::on_access ( es_file_t * target, int32_t mode )
@@ -572,10 +596,21 @@ void EndpointSecurity::on_exec ( const es_event_exec_t * event )
         
         pimpl->event.parameters["target_args"] += "\"" + arg + "\"";
     }
+    
+    // If this is the monitored process, remember it so we receive its events
+    if ( !pimpl->monitoredProcessPath.empty() )
+    {
+        if ( pimpl->event.parameters["target_executable"].length() >= pimpl->monitoredProcessPath.length()
+            && pimpl->event.parameters["target_executable"].substr( 0, pimpl->monitoredProcessPath.length() ) == pimpl->monitoredProcessPath )
+        {
+            // this is our process
+            pimpl->monitoredProcesses[ std::stoi( pimpl->event.parameters["target_pid"] ) ] = 1;
+        }
+    }
 }
 
 
-void EndpointSecurity::on_exit ( int stat )
+void EndpointSecurity::on_exit ( pid_t pid, int stat )
 {
     pimpl->event.event = "exit";
     pimpl->event.parameters["stat"] = std::to_string(stat);
@@ -587,6 +622,12 @@ void EndpointSecurity::on_exit ( int stat )
         pimpl->event.parameters["stat_desc"] = "killed by signal " + std::to_string( WTERMSIG(stat) ) + (WCOREDUMP(stat) ? " (coredump created)" : "" );
     else
         throw EndpointSecurityException( 0, "Invalid exit" );   
+    
+    // If this is our process, remove it from monitored pids (pid could be reused later)
+    auto it = pimpl->monitoredProcesses.find( pid );
+    
+    if ( it != pimpl->monitoredProcesses.end() )
+        pimpl->monitoredProcesses.erase( it );
 }
 
 
@@ -616,10 +657,16 @@ void EndpointSecurity::on_file_provider_update ( es_file_t *source, es_string_to
 }
 
 
-void EndpointSecurity::on_fork ( es_process_t *child )
+void EndpointSecurity::on_fork ( pid_t pid, es_process_t *child )
 {
     pimpl->event.event = "fork";
     pimpl->getEsProcess( child, "child_" );
+    
+    // If this is our process forking, add its child to monitoring pid too
+    auto it = pimpl->monitoredProcesses.find( pid );
+    
+    if ( it != pimpl->monitoredProcesses.end() )
+        pimpl->monitoredProcesses[ std::stoi( pimpl->event.parameters["child_pid"] ) ] = 1;
 }
 
 

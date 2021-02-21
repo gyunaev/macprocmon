@@ -131,10 +131,11 @@ static void test_max_clients()
 static void help( const char * exe )
 {
     std::cout << "Usage: " << exe << "[options]\n"
-        "  -e, --event event    an event to listen for. Can be used multiple times. -e all lists to all events\n"
-        "      for example, -e chdir -e +open -e close\n"
-        "      + in front of event means it will be handled as auth event\n"
-        "  --test-max-clients   tells you how many clients you can create\n";
+        "  -e <event> an event to listen for. Can be used multiple times. -e all lists to all events\n"
+        "               for example, -e chdir -e +open -e close\n"
+        "              + in front of event means it will be handled as auth event\n"
+        " -p <path>   only monitor processes started from this path (including subpaths)\n\n"
+        "  --test-max-clients   tests you how many clients you can create\n";
     
     std::cout << "\nEvents you can listen to:\n";
 
@@ -150,6 +151,7 @@ static void help( const char * exe )
 
 int main ( int argc, char ** argv )
 {
+    std::string monitoredPath;
     std::vector< es_event_type_t > subscriptions;
     unsigned int totalQueues = 1;
     
@@ -173,32 +175,84 @@ int main ( int argc, char ** argv )
                 exit(1);
             }
             
-            if ( !strcmp( argv[ca], "all" ) )
+            // Parse the event list, if any
+            arg = argv[ca];
+            
+            // [rant] it is time to create std::string::split!
+            std::string::size_type offset = 0;
+            
+            while ( offset < arg.length() )
             {
-                for ( auto e : supportedEvents )
-                    subscriptions.push_back( (es_event_type_t) std::get<0>( e.second ) );
-            }
-            else
-            {
-                bool authevent = false;
-                const char * eventname = argv[ca];
-            
-                if ( eventname[0] == '+' )
+                std::string::size_type newoffset = arg.find( ',', offset );
+                
+                if ( newoffset == std::string::npos )
+                    newoffset = arg.length();
+
+                std::string ev = arg.substr( offset, newoffset - offset );
+
+                if ( ev == "all" )
                 {
-                    eventname++;
-                    authevent = true;
+                    // add all events
+                    for ( auto e : supportedEvents )
+                        subscriptions.push_back( (es_event_type_t) std::get<0>( e.second ) );
                 }
-            
-                auto it = supportedEvents.find( eventname );
-            
-                if ( it == supportedEvents.end() )
+                else
                 {
-                    std::cerr << "Unknown event: " << eventname << "\n";
-                    exit( 1 );
-                }
+                    bool authevent = false;
+                    bool remove = false;
+
+                    // could be "-+open" to remove auth open event
+                    while ( ev.length() > 0 && (ev[0] == '+' || ev[0] == '-') )
+                    {
+                        if ( ev[0] == '+' )
+                            authevent = true;
+                        else
+                            remove = true;
+                        
+                        ev.erase( ev.begin() );
+                    }
             
-                subscriptions.push_back( authevent ? (es_event_type_t) std::get<1>( it->second ) : (es_event_type_t) std::get<0>( it->second ) );
+                    auto it = supportedEvents.find( ev );
+            
+                    if ( it == supportedEvents.end() )
+                    {
+                        std::cerr << "Unknown event: " << ev << "\n";
+                        exit( 1 );
+                    }
+            
+                    if ( remove )
+                    {
+                        auto rit = std::find( subscriptions.begin(), 
+                                              subscriptions.end(), 
+                                              authevent ? (es_event_type_t) std::get<1>( it->second ) : (es_event_type_t) std::get<0>( it->second ) );
+                        
+                        if ( rit == subscriptions.end() )
+                        {
+                            std::cerr << "You're trying to remove an event " << ev << " which wasn't added. use -e all,-open\n";
+                            exit( 1 );
+                        }
+                     
+                        subscriptions.erase( rit );
+                    }
+                    else
+                    {
+                        // Add an event for monitoring
+                        subscriptions.push_back( authevent ? (es_event_type_t) std::get<1>( it->second ) : (es_event_type_t) std::get<0>( it->second ) );
+                    }
+                }
+                
+                offset = newoffset + 1;
             }            
+        }
+        else if ( arg == "-p" )
+        {
+            if ( ++ca >= argc )
+            {
+                std::cerr << "-p requires an argument\n";
+                exit(1);
+            }
+
+            monitoredPath = argv[ca];
         }
         else if ( arg == "--help" )
         {
@@ -217,6 +271,10 @@ int main ( int argc, char ** argv )
         for ( unsigned int qid = 0; qid < totalQueues; qid++ )
         {
             EndpointSecurity * epsec = new EndpointSecurity();
+            
+            if ( !monitoredPath.empty() )
+                epsec->monitorOnlyProcessPath( monitoredPath );            
+            
             epsec->create( [ qid ](const EndpointSecurity::Event& event){ return event_callback( qid, event ); });
             epsec->subscribe( subscriptions );
         }
