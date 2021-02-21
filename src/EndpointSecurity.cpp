@@ -167,14 +167,14 @@ void EndpointSecurity::create( std::function<int(const EndpointSecurity::Event&)
                                   // This one requires es_respond_flags_result according to https://developer.apple.com/forums/thread/129112
                                   if ( message->event_type == ES_EVENT_TYPE_AUTH_OPEN )
                                   {
-                                    es_respond_result_t res = es_respond_flags_result( client, message, 0x7FFFFFFF, false );
+                                    es_respond_result_t res = es_respond_flags_result( client, message, 0x7FFFFFFF, true );
                                   
                                     if ( res != 0 )
                                         throw EndpointSecurityException( res, "Failed to respond to event: es_respond_auth_result() failed" );
                                   }
                                   else
                                   {
-                                    es_respond_result_t res = es_respond_auth_result( client, message, ES_AUTH_RESULT_ALLOW, false );
+                                    es_respond_result_t res = es_respond_auth_result( client, message, ES_AUTH_RESULT_ALLOW, true );
                                   
                                     if ( res != 0 )
                                         throw EndpointSecurityException( res, "Failed to respond to event: es_respond_auth_result() failed" );
@@ -830,9 +830,9 @@ void EndpointSecurity::on_mmap ( es_file_t *source, uint64_t file_pos, int32_t f
     pimpl->event.event = "mmap";
     pimpl->event.parameters["source"] = EndpointSecurityImpl::getEsFile(source);
     pimpl->event.parameters["file_pos"] = std::to_string(file_pos);
-    pimpl->event.parameters["flags"] = std::to_string(flags);
-    pimpl->event.parameters["max_protection"] = std::to_string(max_protection);
-    pimpl->event.parameters["protection"] = std::to_string(protection);
+    pimpl->event.parameters["flags"] = EndpointSecurityImpl::getBitmask( value_map_mmap_flags, flags );
+    pimpl->event.parameters["max_protection"] = max_protection == 0 ? "PROT_NONE (0)" : EndpointSecurityImpl::getBitmask( value_map_mmap_prot,  max_protection);
+    pimpl->event.parameters["protection"] = protection == 0 ? "PROT_NONE (0)" : EndpointSecurityImpl::getBitmask( value_map_mmap_prot,  protection);
 }
 
 
@@ -848,7 +848,7 @@ void EndpointSecurity::on_mprotect ( user_addr_t address, user_size_t size, int3
     pimpl->event.event = "mprotect";
     pimpl->event.parameters["address"] = std::to_string(address);
     pimpl->event.parameters["size"] = std::to_string(size);
-    pimpl->event.parameters["protection"] = std::to_string(protection);
+    pimpl->event.parameters["protection"] = protection == 0 ? "PROT_NONE (0)" : EndpointSecurityImpl::getBitmask( value_map_mmap_prot,  protection);
 }
 
 

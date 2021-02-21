@@ -237,3 +237,30 @@ static std::map< unsigned int, const char *> value_map_proc_check_type = {
     { 0x7, "ES_PROC_CHECK_TYPE_TERMINATE" },
     { 0xe, "ES_PROC_CHECK_TYPE_UDATA_INFO" }
 };
+
+static std::map< unsigned int, const char *> value_map_mmap_prot = {
+    { 0x01, "PROT_READ" },
+    { 0x02, "PROT_WRITE" },
+    { 0x04, "PROT_EXEC" }
+};
+
+static std::map< unsigned int, const char *> value_map_mmap_flags = {
+    { 0x0001, "MAP_SHARED" },
+    { 0x0002, "MAP_PRIVATE" },
+    { 0x0010, "MAP_FIXED" },
+    { 0x0020, "MAP_RENAME" },
+    { 0x0040, "MAP_NORESERVE" },
+    { 0x0080, "MAP_RESERVED0080" },
+    { 0x0100, "MAP_NOEXTEND" },
+    { 0x0200, "MAP_HASSEMAPHORE" },
+    { 0x0400, "MAP_NOCACHE" },
+    { 0x0800, "MAP_JIT" },
+    { 0x0000, "MAP_FILE" },
+    { 0x1000, "MAP_ANON" },
+    { 0x2000, "MAP_RESILIENT_CODESIGN" },
+    { 0x4000, "MAP_RESILIENT_MEDIA" },
+    { 0x8000, "MAP_32BIT" },
+    { 0x20000, "MAP_TRANSLATED_ALLOW_EXECUTE" },
+    { 0x40000, "MAP_UNIX03" }
+};
+
