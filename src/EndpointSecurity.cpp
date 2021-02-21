@@ -46,9 +46,9 @@ class EndpointSecurityImpl
         static inline std::string timespecToString( time_t tval )
         {
             // You can get nanosecond time too from tv_usec if needed
-            std::string out = ctime( &tval );
-            out = out.substr( 0, out.length() - 1 );
-            return out;
+            char outtime[ 256 ];
+            strftime( outtime, sizeof(outtime) - 1, "%Y-%m-%d %H:%M:%S", std::localtime(&tval) );
+            return outtime;
         }
         
         // Dumps es_process_t
@@ -167,7 +167,7 @@ void EndpointSecurity::create( std::function<int(const EndpointSecurity::Event&)
                                   // This one requires es_respond_flags_result according to https://developer.apple.com/forums/thread/129112
                                   if ( message->event_type == ES_EVENT_TYPE_AUTH_OPEN )
                                   {
-                                    es_respond_result_t res = es_respond_flags_result( client, message, 0x7FFFFFFF, true );
+                                    es_respond_result_t res = es_respond_flags_result( client, message, 0x7FFFFFFF, false );
                                   
                                     if ( res != 0 )
                                         throw EndpointSecurityException( res, "Failed to respond to event: es_respond_auth_result() failed" );
@@ -263,7 +263,7 @@ void EndpointSecurity::on_event( const es_message_t * message )
     
     // Fill up the event
     pimpl->event.parameters.clear();
-    pimpl->event.id = message->seq_num;
+    pimpl->event.timestamp = EndpointSecurityImpl::timespecToString( message->time.tv_sec ) + "." + std::to_string( message->time.tv_nsec );
     pimpl->event.is_authentication = (message->action_type == ES_ACTION_TYPE_AUTH);
     
     // process info from BSM - there are some other params available which are missed here

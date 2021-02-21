@@ -37,10 +37,10 @@ class EndpointSecurity
             std::string event;
             
             // true if this is authentication event, false otherwise
-            bool    is_authentication;
+            bool        is_authentication;
             
-            // This is seq_num from message
-            uint64_t id;
+            // The event timestamp
+            std::string timestamp;
             
             // Process information extracted from es_process
             pid_t       process_pid;

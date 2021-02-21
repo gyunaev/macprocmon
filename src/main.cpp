@@ -61,42 +61,41 @@ static std::map< std::string, helpdata > supportedEvents = {
         { "write", { ES_EVENT_TYPE_NOTIFY_WRITE, ES_EVENT_TYPE_LAST } }
 };
 
-static int event_callback( unsigned int queueid, const EndpointSecurity::Event& event)
+static int event_callback( const EndpointSecurity::Event& event )
 {
-    std::cout << "[" << queueid << "] ID: " << event.id << "\n"
-        << "Process data:\n"
-        << "        PID: " << event.process_pid << "\n"
-        << "       EUID: " << event.process_euid << "\n"
-        << "       EGID: " << event.process_egid << "\n"
-        << "       PPID: " << event.process_ppid << "\n";
+    std::cout << "event : " << event.event << "\n" << "  time: " << event.timestamp << "\n";
+
+    for ( auto k : event.parameters )
+        std::cout << "  " <<  k.first << " : " << k.second << "\n";
+    
+    std::cout << " process:\n"
+        << "        PID : " << event.process_pid << "\n"
+        << "       EUID : " << event.process_euid << "\n"
+        << "       EGID : " << event.process_egid << "\n"
+        << "       PPID : " << event.process_ppid << "\n";
 
     if ( event.process_ruid != event.process_euid )
-        std::cout << "       RUID: " << event.process_ruid << "\n";
+        std::cout << "       RUID : " << event.process_ruid << "\n";
 
     if ( event.process_rgid != event.process_egid )
-        std::cout << "       RGID: " << event.process_rgid << "\n";
+        std::cout << "       RGID : " << event.process_rgid << "\n";
 
     if ( event.process_oppid != event.process_ppid )
-        std::cout << "      OPPID: " << event.process_oppid << "\n";
+        std::cout << "      OPPID : " << event.process_oppid << "\n";
         
     std::cout 
-        << "        GID: " << event.process_gid << "\n"
-        << "        SID: " << event.process_sid << "\n"
-        << "   threadid: " << event.process_sid << "\n"
-        << "       path: " << event.process_executable << "\n"
-        << "    csflags: " << event.process_csflags_desc << "\n"
-        << "    sign_id: " << event.process_signing_id << "\n"
-        << "    started: " << event.process_start_time << "\n"
-        << "      extra: " << (event.process_is_platform_binary ? "(platform_binary) " : "") 
+        << "        GID : " << event.process_gid << "\n"
+        << "        SID : " << event.process_sid << "\n"
+        << "   threadid : " << event.process_sid << "\n"
+        << "       path : " << event.process_executable << "\n"
+        << "    csflags : " << event.process_csflags_desc << "\n"
+        << "    sign_id : " << event.process_signing_id << "\n"
+        << "    started : " << event.process_start_time << "\n"
+        << "      extra : " << (event.process_is_platform_binary ? "(platform_binary) " : "") 
                             << (event.process_is_es_client ? "(es_client) " : "") << "\n";
                             
     if ( !event.process_team_id.empty() )
-        std::cout << "    team_id: " << event.process_team_id << "\n";
-
-    std::cout << "Event: " << event.event << "\n";
-    
-    for ( auto k : event.parameters )
-        std::cout << "    " <<  k.first << "=" << k.second << "\n";
+        std::cout << "    team_id : " << event.process_team_id << "\n";
     
     std::cout << "\n";
     return 0;
@@ -153,7 +152,6 @@ int main ( int argc, char ** argv )
 {
     std::string monitoredPath;
     std::vector< es_event_type_t > subscriptions;
-    unsigned int totalQueues = 1;
     bool verbose = false;
     
     if ( argc == 1 )
@@ -300,19 +298,17 @@ int main ( int argc, char ** argv )
     
     try
     {
-        for ( unsigned int qid = 0; qid < totalQueues; qid++ )
-        {
-            EndpointSecurity * epsec = new EndpointSecurity();
+        EndpointSecurity * epsec = new EndpointSecurity();
             
-            if ( !monitoredPath.empty() )
-                epsec->monitorOnlyProcessPath( monitoredPath );            
+        if ( !monitoredPath.empty() )
+            epsec->monitorOnlyProcessPath( monitoredPath );            
             
-            epsec->create( [ qid ](const EndpointSecurity::Event& event){ return event_callback( qid, event ); });
-            epsec->subscribe( subscriptions );
+        epsec->create( [=](const EndpointSecurity::Event& event){ return event_callback( event ); });
+        epsec->subscribe( subscriptions );
             
-            if ( verbose )
-                std::cout << "Interceptor started\n";
-        }
+        if ( verbose )
+            std::cout << "Interceptor started\n";
+
         pause();
     }
     catch ( EndpointSecurityException ex )
