@@ -70,7 +70,7 @@ class EndpointSecurityImpl
             event.parameters[ prefix + "gid"] = std::to_string( process->group_id );
             event.parameters[ prefix + "sid"] = std::to_string( process->session_id );
             event.parameters[ prefix + "csflags"] = std::to_string( process->codesigning_flags );
-            event.parameters[ prefix + "csflags_desc"] = parse_bitfield( value_map_codesign, process->codesigning_flags );
+            event.parameters[ prefix + "csflags_desc"] = getBitmask( value_map_codesign, process->codesigning_flags );
             event.parameters[ prefix + "is_platform_binary"] = process->is_platform_binary ? "true" : "false";
             event.parameters[ prefix + "is_es_client"] = process->is_es_client ? "true" : "false";
             event.parameters[ prefix + "signing_id"] = getEsStringToken( process->signing_id );
@@ -84,6 +84,51 @@ class EndpointSecurityImpl
             event.parameters[ "f_mntfromname"] = statfs->f_mntfromname;
             event.parameters[ "f_mntonname"] = statfs->f_mntonname;
         }
+        
+        // Converts bitmask to a human-readable value, i.e. 5 into "FREAD|O_NONBLOCK"
+        static std::string getBitmask( const std::map< unsigned int, const char *>& map, unsigned int value )
+        {
+            std::string res;
+            unsigned int origvalue = value;
+            
+            for ( auto i : map )
+            {
+                if ( value & i.first )
+                {
+                    value ^= i.first;
+                    
+                    if ( !res.empty() )
+                        res += "|";
+                    
+                    res += i.second;
+                }
+            }
+            
+            if ( value )
+                res += " [" + std::to_string(value) + "?] (";
+            else
+                res += " (";
+
+            res += std::to_string( origvalue ) + ")";
+            return res;
+        }
+
+        // Converts value to a human-readable value, i.e. 1 into "F_DUPFD"
+        static std::string getValue( const std::map< unsigned int, const char *>& map, unsigned int value )
+        {
+            std::string res;
+            
+            auto i = map.find( value );
+            
+            if ( i != map.end() )
+                res = i->second;
+            else
+                res = "[?]";
+            
+            res += " (" + std::to_string( value ) + ")";
+            return res;
+        }
+        
 };
 
 
@@ -212,7 +257,7 @@ void EndpointSecurity::on_event( const es_message_t * message )
     pimpl->event.process_gid = message->process->group_id;
     pimpl->event.process_sid = message->process->session_id;
     pimpl->event.process_csflags = message->process->codesigning_flags;
-    pimpl->event.process_csflags_desc = parse_bitfield( value_map_codesign, message->process->codesigning_flags );
+    pimpl->event.process_csflags_desc = EndpointSecurityImpl::getBitmask( value_map_codesign, message->process->codesigning_flags );
     pimpl->event.process_is_platform_binary = message->process->is_platform_binary;
     pimpl->event.process_is_es_client = message->process->is_es_client;
     pimpl->event.process_thread_id = message->thread->thread_id;
@@ -493,7 +538,7 @@ void EndpointSecurity::on_access ( es_file_t * target, int32_t mode )
     pimpl->event.event = "access";
     pimpl->event.parameters["target"] = EndpointSecurityImpl::getEsFile(target);
     pimpl->event.parameters["mode"] = std::to_string( mode );
-    pimpl->event.parameters["mode_desc"] = mode == 0 ? "F_OK (0)" : parse_bitfield( value_map_access, mode );
+    pimpl->event.parameters["mode_desc"] = mode == 0 ? "F_OK (0)" : EndpointSecurityImpl::getBitmask( value_map_access, mode );
 }
 
 
@@ -636,7 +681,7 @@ void EndpointSecurity::on_fcntl ( es_file_t * target, int32_t cmd )
     pimpl->event.event = "fcntl";
     pimpl->event.parameters["target"] = EndpointSecurityImpl::getEsFile(target);
     pimpl->event.parameters["cmd"] = std::to_string(cmd);
-    pimpl->event.parameters["cmd_desc"] = parse_value( value_map_fcntl, cmd );
+    pimpl->event.parameters["cmd_desc"] = EndpointSecurityImpl::getValue( value_map_fcntl, cmd );
 }
 
 
@@ -683,19 +728,19 @@ void EndpointSecurity::on_getattrlist ( es_file_t *target, struct attrlist attrl
     pimpl->event.parameters["target"] = EndpointSecurityImpl::getEsFile(target);
 
     if ( attrlist.commonattr )
-        pimpl->event.parameters["commonattr"] = parse_bitfield( value_map_attr_common, attrlist.commonattr );
+        pimpl->event.parameters["commonattr"] = EndpointSecurityImpl::getBitmask( value_map_attr_common, attrlist.commonattr );
     
     if ( attrlist.volattr )
-        pimpl->event.parameters["volattr"] = parse_bitfield( value_map_attr_volume, attrlist.volattr );
+        pimpl->event.parameters["volattr"] = EndpointSecurityImpl::getBitmask( value_map_attr_volume, attrlist.volattr );
     
     if ( attrlist.dirattr )
-        pimpl->event.parameters["dirattr"] = parse_bitfield( value_map_attr_dir, attrlist.dirattr );
+        pimpl->event.parameters["dirattr"] = EndpointSecurityImpl::getBitmask( value_map_attr_dir, attrlist.dirattr );
     
     if ( attrlist.fileattr )
-        pimpl->event.parameters["fileattr"] = parse_bitfield( value_map_attr_file, attrlist.fileattr );
+        pimpl->event.parameters["fileattr"] = EndpointSecurityImpl::getBitmask( value_map_attr_file, attrlist.fileattr );
     
     if ( attrlist.forkattr )
-        pimpl->event.parameters["forkattr"] = parse_bitfield( value_map_attr_fork, attrlist.forkattr );
+        pimpl->event.parameters["forkattr"] = EndpointSecurityImpl::getBitmask( value_map_attr_fork, attrlist.forkattr );
 }
 
 
@@ -791,7 +836,7 @@ void EndpointSecurity::on_open ( es_file_t * file, int32_t fflag )
 {
     pimpl->event.event = "open";
     pimpl->event.parameters["filename"] = EndpointSecurityImpl::getEsFile(file);
-    pimpl->event.parameters["fflag"] = parse_bitfield( value_map_open, fflag );
+    pimpl->event.parameters["fflag"] = EndpointSecurityImpl::getBitmask( value_map_open, fflag );
 }
 
 
@@ -803,7 +848,7 @@ void EndpointSecurity::on_proc_check ( int flavor, es_process_t * target, int ty
     if ( target )
         pimpl->getEsProcess( target, "target_" );
     
-    pimpl->event.parameters["type"] = parse_value( value_map_proc_check_type, type );
+    pimpl->event.parameters["type"] = EndpointSecurityImpl::getValue( value_map_proc_check_type, type );
 }
 
 
@@ -867,19 +912,19 @@ void EndpointSecurity::on_setattrlist ( es_file_t *target, struct attrlist attrl
     pimpl->event.parameters["target"] = EndpointSecurityImpl::getEsFile(target);
 
     if ( attrlist.commonattr )
-        pimpl->event.parameters["commonattr"] = parse_bitfield( value_map_attr_common, attrlist.commonattr );
+        pimpl->event.parameters["commonattr"] = EndpointSecurityImpl::getBitmask( value_map_attr_common, attrlist.commonattr );
     
     if ( attrlist.volattr )
-        pimpl->event.parameters["volattr"] = parse_bitfield( value_map_attr_volume, attrlist.volattr );
+        pimpl->event.parameters["volattr"] = EndpointSecurityImpl::getBitmask( value_map_attr_volume, attrlist.volattr );
     
     if ( attrlist.dirattr )
-        pimpl->event.parameters["dirattr"] = parse_bitfield( value_map_attr_dir, attrlist.dirattr );
+        pimpl->event.parameters["dirattr"] = EndpointSecurityImpl::getBitmask( value_map_attr_dir, attrlist.dirattr );
     
     if ( attrlist.fileattr )
-        pimpl->event.parameters["fileattr"] = parse_bitfield( value_map_attr_file, attrlist.fileattr );
+        pimpl->event.parameters["fileattr"] = EndpointSecurityImpl::getBitmask( value_map_attr_file, attrlist.fileattr );
     
     if ( attrlist.forkattr )
-        pimpl->event.parameters["forkattr"] = parse_bitfield( value_map_attr_fork, attrlist.forkattr );
+        pimpl->event.parameters["forkattr"] = EndpointSecurityImpl::getBitmask( value_map_attr_fork, attrlist.forkattr );
 }
 
 
