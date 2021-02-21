@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <mutex>
 #include <unistd.h>
 
 #include "EndpointSecurity.h"
@@ -63,6 +64,9 @@ static std::map< std::string, helpdata > supportedEvents = {
 
 static int event_callback( const EndpointSecurity::Event& event )
 {
+    //static std::mutex m;
+    //std::lock_guard<std::mutex> lockGuard(m);
+    
     std::cout << "event : " << event.event << "\n" << "  time: " << event.timestamp << "\n";
 
     for ( auto k : event.parameters )
@@ -133,7 +137,7 @@ static void help( const char * exe )
         "  -e <event> an event to listen for. Can be used multiple times. -e all lists to all events\n"
         "               for example, -e chdir -e +open -e close\n"
         "              + in front of event means it will be handled as auth event\n"
-        " -p <path>   only monitor processes started from this path (including subpaths)\n\n"
+        " -p <path>   only monitor processes started from this path (including subpaths)\n"
         "  --test-max-clients   tests you how many clients you can create\n";
     
     std::cout << "\nEvents you can listen to:\n";
@@ -152,6 +156,7 @@ int main ( int argc, char ** argv )
 {
     std::string monitoredPath;
     std::vector< es_event_type_t > subscriptions;
+    unsigned int totalClients = 1;
     bool verbose = false;
     
     if ( argc == 1 )
@@ -275,6 +280,17 @@ int main ( int argc, char ** argv )
 
             monitoredPath = argv[ca];
         }
+        else if ( arg == "-c" )
+        {
+            // internal option to test various things
+            if ( ++ca >= argc )
+            {
+                std::cerr << "-c requires an argument\n";
+                exit(1);
+            }
+
+            totalClients = std::stoi( argv[ca] );
+        }
         else if ( arg == "--help" )
         {
             help( argv[0] );
@@ -298,16 +314,22 @@ int main ( int argc, char ** argv )
     
     try
     {
-        EndpointSecurity * epsec = new EndpointSecurity();
-            
-        if ( !monitoredPath.empty() )
-            epsec->monitorOnlyProcessPath( monitoredPath );            
-            
-        epsec->create( [=](const EndpointSecurity::Event& event){ return event_callback( event ); });
-        epsec->subscribe( subscriptions );
+        if ( verbose )
+            std::cout << "Starting the interceptor using " << totalClients << " EPS clients\n";
+        
+        for ( unsigned int i = 0; i < totalClients; i++ )
+        {
+            EndpointSecurity * epsec = new EndpointSecurity();
+                
+            if ( !monitoredPath.empty() )
+                epsec->monitorOnlyProcessPath( monitoredPath );            
+                
+            epsec->create( [=](const EndpointSecurity::Event& event){ return event_callback( event ); });
+            epsec->subscribe( subscriptions );
+        }
             
         if ( verbose )
-            std::cout << "Interceptor started\n";
+            std::cout << "Intercepting started\n";
 
         pause();
     }
