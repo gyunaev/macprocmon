@@ -131,8 +131,8 @@ static void test_max_clients()
 static void help( const char * exe )
 {
     std::cout << "Usage: " << exe << "[options]\n"
-        "  -e <event> an event to listen for. Can be used multiple times. -e all lists to all events\n"
-        "               for example, -e chdir -e +open -e close\n"
+        "  -e <event> event(s) to listen for. Can be used multiple times. -e all lists to all events\n"
+        "               for example, -e chdir,+open,close or -e all,-open listens to all events but open\n"
         "              + in front of event means it will be handled as auth event\n"
         " -p <path>   only monitor processes started from this path (including subpaths)\n\n"
         "  --test-max-clients   tests you how many clients you can create\n";
