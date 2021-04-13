@@ -259,7 +259,7 @@ The `modified` isn't set when the file is modified via mmap. This is probably a 
 
 When forking, the fds are duplicated internally, so `dup` event is not generated, even though duplication takes place.
 
-`fcntl( fd, F_DUPFD )` generates a `dup` event.
+`fcntl( fd, F_DUPFD )` generates a `dup` event (and `fcntl` event of course).
 
 #### exec event ####
 
