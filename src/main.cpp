@@ -1,4 +1,6 @@
 #include <iostream>
+#include <iomanip>
+#include <sstream>
 #include <vector>
 #include <mutex>
 #include <unistd.h>
@@ -62,7 +64,7 @@ static std::map< std::string, helpdata > supportedEvents = {
         { "write", { ES_EVENT_TYPE_NOTIFY_WRITE, ES_EVENT_TYPE_LAST } }
 };
 
-static int event_callback( const EndpointSecurity::Event& event )
+static int event_callback_text( const EndpointSecurity::Event& event )
 {
     //static std::mutex m;
     //std::lock_guard<std::mutex> lockGuard(m);
@@ -105,6 +107,79 @@ static int event_callback( const EndpointSecurity::Event& event )
     return 0;
 }
 
+// based on https://stackoverflow.com/a/33799784, but wrapped with unescaped quote chars
+static std::string json_quote(const std::string &s) {
+    std::ostringstream o;
+    o << "\"";
+    for (auto c = s.cbegin(); c != s.cend(); c++) {
+        switch (*c) {
+        case '"': o << "\\\""; break;
+        case '\\': o << "\\\\"; break;
+        case '\b': o << "\\b"; break;
+        case '\f': o << "\\f"; break;
+        case '\n': o << "\\n"; break;
+        case '\r': o << "\\r"; break;
+        case '\t': o << "\\t"; break;
+        default:
+            if ('\x00' <= *c && *c <= '\x1f') {
+                o << "\\u"
+                  << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(*c);
+            } else {
+                o << *c;
+            }
+        }
+    }
+    o << "\"";
+    return o.str();
+}
+
+static int event_callback_json( const EndpointSecurity::Event& event )
+{
+    std::cout
+    << "{"
+        << json_quote("event") << ":" << json_quote(event.event) << ","
+        << json_quote("time") << ":" << json_quote(event.timestamp) << ","
+
+        << json_quote("parameters") << ":"
+        << "{"
+        ;
+        int i = 0;
+        for ( auto k : event.parameters ) {
+            if (i++ > 0) std::cout << ",";
+            std::cout << json_quote(k.first) << ":" << json_quote(k.second);
+        }
+        std::cout
+        << "}"
+        << ","
+
+        << json_quote("process") << ":"
+        << "{"
+            << json_quote("pid")                << ":" << event.process_pid << ","
+            << json_quote("euid")               << ":" << event.process_euid << ","
+            << json_quote("ruid")               << ":" << event.process_ruid << ","
+            << json_quote("rgid")               << ":" << event.process_rgid << ","
+            << json_quote("egid")               << ":" << event.process_egid << ","
+            << json_quote("ppid")               << ":" << event.process_ppid << ","
+            << json_quote("oppid")              << ":" << event.process_oppid << ","
+            << json_quote("gid")                << ":" << event.process_gid << ","
+            << json_quote("sid")                << ":" << event.process_sid << ","
+            << json_quote("csflags")            << ":" << event.process_csflags << ","
+            << json_quote("csflags_desc")       << ":" << json_quote(event.process_csflags_desc) << ","
+            << json_quote("is_platform_binary") << ":" << (event.process_is_platform_binary ? "true" : "false") << ","
+            << json_quote("is_es_client")       << ":" << (event.process_is_es_client ? "true" : "false") << ","
+            << json_quote("signing_id")         << ":" << json_quote(event.process_signing_id) << ","
+            << json_quote("team_id")            << ":" << json_quote(event.process_team_id) << ","
+            << json_quote("thread_id")          << ":" << event.process_thread_id << ","
+            << json_quote("start_time")         << ":" << json_quote(event.process_start_time) << ","
+            << json_quote("executable")         << ":" << json_quote(event.process_executable)
+        << "}"
+    << "}\n"
+    ;
+
+    return 0;
+}
+
+
 // This function tries to create as many clients as possible
 static void test_max_clients()
 {
@@ -138,8 +213,10 @@ static void help( const char * exe )
         "               for example, -e chdir -e +open -e close\n"
         "              + in front of event means it will be handled as auth event\n"
         " -p <path>   only monitor processes started from this path (including subpaths)\n"
-        "  --test-max-clients   tests you how many clients you can create\n";
-    
+        " -j, --json  output JSON objects (one line per event) instead of text\n"
+        "  --test-max-clients   tests you how many clients you can create\n"
+        ;
+
     std::cout << "\nEvents you can listen to:\n";
 
     for ( auto e : supportedEvents )
@@ -158,6 +235,7 @@ int main ( int argc, char ** argv )
     std::vector< es_event_type_t > subscriptions;
     unsigned int totalClients = 1;
     bool verbose = false;
+    std::function<int(const EndpointSecurity::Event&)> reportfunc = event_callback_text;
     
     if ( argc == 1 )
     {
@@ -305,6 +383,10 @@ int main ( int argc, char ** argv )
         {
             verbose = true;
         }
+        else if ( arg == "-j" || arg == "--json" )
+        {
+            reportfunc = event_callback_json;
+        }
         else
         {
             std::cerr << "Unknown argument: " << arg << "\n";
@@ -324,7 +406,7 @@ int main ( int argc, char ** argv )
             if ( !monitoredPath.empty() )
                 epsec->monitorOnlyProcessPath( monitoredPath );            
                 
-            epsec->create( [=](const EndpointSecurity::Event& event){ return event_callback( event ); });
+            epsec->create( reportfunc );
             epsec->subscribe( subscriptions );
         }
             
